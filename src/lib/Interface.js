@@ -22,6 +22,11 @@ export default class Interface {
       '#cconsent-bar button { line-height:normal; font-size:14px; border:none; padding:10px 10px; color:' + window.CookieConsent.config.theme.barMainButtonTextColor + '; background-color:' + window.CookieConsent.config.theme.barMainButtonColor + ';}',
       '#cconsent-bar a.ccb__edit { margin-right:15px }',
       '#cconsent-bar a:hover, #cconsent-bar button:hover { cursor:pointer; }',
+      '#cconsent-bar .consent-give { margin-right:15px }',
+      '@media (max-width: 800px) { #cconsent-bar .ccb__right { text-align:center; width:100%; }}',
+      '@media (max-width: 800px) { #cconsent-bar .ccb__edit { display:block; width:100%; margin-right:0; }}',
+      '@media (max-width: 800px) { #cconsent-bar .consent-give { display:block; margin:20px auto 0 auto; }}',
+      '@media (max-width: 800px) { #cconsent-bar .consent-give-necessary { margin:20px auto 0 auto; }}',
       '#cconsent-modal { display:none; font-size:14px; line-height:18px; color:#666; width: 100vw; height: 100vh; position:fixed; left:0; top:0; right:0; bottom:0; font-family:sans-serif; font-size:14px; background-color:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;}',
       '@media (max-width: 600px) { #cconsent-modal { height: 100% } }',
       '#cconsent-modal h2, #cconsent-modal h3 {color:#333}',
@@ -80,7 +85,8 @@ export default class Interface {
           el('div.ccb__right',
             el('div.ccb__button',
               el('a.ccb__edit', Language.getTranslation(window.CookieConsent.config, window.CookieConsent.config.language.current, 'barLinkSetting')),
-              el('button.consent-give', Language.getTranslation(window.CookieConsent.config, window.CookieConsent.config.language.current, 'barBtnAcceptAll'))
+              el('button.consent-give', Language.getTranslation(window.CookieConsent.config, window.CookieConsent.config.language.current, 'barBtnAcceptAll')),
+              el('button.consent-give-necessary', Language.getTranslation(window.CookieConsent.config, window.CookieConsent.config.language.current, 'barBtnAcceptNecessary'))
             )
           )
         ),
@@ -240,7 +246,6 @@ export default class Interface {
 
     for(let button of buttonConsentGive) {
       button.addEventListener('click', () => {
-
         // We set config to full consent
         for(let key in window.CookieConsent.config.categories) {
           window.CookieConsent.config.categories[key].wanted =
@@ -260,6 +265,31 @@ export default class Interface {
         })
 
         this.writeBufferToDOM();
+        this.buildCookie((cookie) => {
+          this.setCookie(cookie);
+        });
+        this.elements['bar'].classList.add('ccb--hidden');
+        this.elements['modal'].classList.remove('ccm--visible');
+
+        this.modalRedrawIcons();
+      });
+    }
+
+    // If you click Accept necessary cookies
+    var buttonConsentGive = document.querySelectorAll('.consent-give-necessary');
+
+    for(let button of buttonConsentGive) {
+      button.addEventListener('click', () => {
+
+        // We set config to necessary cookie consent
+        for(let key in window.CookieConsent.config.categories) {
+          if(window.CookieConsent.config.categories[key].needed) {
+            window.CookieConsent.config.categories[key].wanted =
+            window.CookieConsent.config.categories[key].checked = true;
+          }
+        }
+
+        this.writeBufferToDOM();
 
         this.buildCookie((cookie) => {
           this.setCookie(cookie);
@@ -272,7 +302,6 @@ export default class Interface {
 
       });
     }
-
 
     // If you click Cookie settings and open modal
     Array.prototype.forEach.call(document.getElementsByClassName('ccb__edit'), (edit) => {
@@ -296,9 +325,7 @@ export default class Interface {
             return parent;
           }
         }
-
         var parentDl = getDlParent(event.target);
-
         if(parentDl.classList.contains('ccm__tabgroup--open')) {
           parentDl.classList.remove('ccm__tabgroup--open');
         } else {
@@ -370,7 +397,6 @@ export default class Interface {
       categories: {},
       services: []
     };
-
     for(let key in window.CookieConsent.config.categories) {
       cookie.categories[key] = {
         wanted: window.CookieConsent.config.categories[key].wanted,
@@ -378,11 +404,9 @@ export default class Interface {
     }
 
     cookie.services = Utilities.listGlobalServices();
-
     if (callback) callback(cookie);
     return cookie;
   }
-
   setCookie(cookie, callback) {
     const expires_in = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
 
